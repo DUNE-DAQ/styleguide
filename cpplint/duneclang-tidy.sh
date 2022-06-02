@@ -103,13 +103,16 @@ if [[ "$retval" != "0" ]]; then
     fi
 fi
 
-# Left out:
+# Some of the warnings/errors left out:
 
 # misc-non-private-member-variables-in-classes: since clang-tidy bizarrely includes this complaint for structs
 
 # cppcoreguidelines-special-member-functions: as this is overly picky
 # ("if you explicitly define one of the five special member functions,
 # you must define them all")
+
+# cppcoreguidelines-pro-bounds-pointer-arithmetic: since we use C++17 and not C++20 (Jun-1-2022) we don't have access
+# to std::span making it very difficult to live without subscripting arrays
 
 musts="bugprone-assert-side-effect,\
 bugprone-copy-constructor-init,\
@@ -139,7 +142,7 @@ cppcoreguidelines-macro-usage,\
 cppcoreguidelines-narrowing-conversions,\
 cppcoreguidelines-no-malloc,\
 cppcoreguidelines-pro-bounds-constant-array-index,\
-cppcoreguidelines-pro-bounds-pointer-arithmetic,\
+#cppcoreguidelines-pro-bounds-pointer-arithmetic,\
 cppcoreguidelines-pro-type-const-cast,\
 cppcoreguidelines-pro-type-cstyle-cast,\
 cppcoreguidelines-pro-type-reinterpret-cast,\
@@ -207,7 +210,7 @@ google-runtime-int,\
 google-runtime-operator,\
 hicpp-exception-baseclass,\
 hicpp-multiway-paths-covered,\
-misc-no-recursion,\
+#misc-no-recursion,\
 misc-unconventional-assign-operator,\
 modernize-make-shared,\
 modernize-make-unique,\
@@ -267,9 +270,9 @@ for source_file in $source_files; do
     echo
     echo "=========================Checking $source_file========================="
 
-    clang-tidy -extra-arg=-ferror-limit=0 -p=$tmpdir -checks=${musts},${maybes} -config="{CheckOptions: [{key: cppcoreguidelines-narrowing-conversions.IgnoreConversionFromTypes, value: size_t;ptrdiff_t;size_type;difference_type}]}" -header-filter=.* $source_file |& awk -f $(dirname $0)/duneclang-tidy_scrub_output.awk
+    clang-tidy -extra-arg=-ferror-limit=0 -p=$tmpdir -checks=${musts},${maybes} -config="{CheckOptions: [{key: cppcoreguidelines-narrowing-conversions.IgnoreConversionFromTypes, value: unsigned;size_t;ptrdiff_t;size_type;difference_type}, {key: performance-move-const-arg.CheckTriviallyCopyableMove, value: false}]}" -header-filter=.* $source_file
 
-done
+done 
 
 #echo "Deleting $tmpdir/compile_commands.json"
 rm -f $tmpdir/compile_commands.json

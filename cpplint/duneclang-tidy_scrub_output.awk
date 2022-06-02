@@ -13,11 +13,6 @@ BEGIN {
        next
     }
 
-    # ...and catch instances of external header errors where the awk record includes the opening blurb
-
-    if (NR == 1 && $0 ~ /Error while processing/ && $0 ~ /\/cvmfs/) {
-	next
-    }
 
     # Get rid of complaints about moo-generated code
     if ($0 ~/\/codegen\//) {
@@ -70,6 +65,52 @@ BEGIN {
 
     if ($0 ~ /note:.*requested here/) {  # Possibly too draconian
 	next
+    }
+
+    # Catch instances of external header errors where the awk record includes the opening blurb
+
+    if ($0 ~ /Error while processing/ && $0 ~ /\/cvmfs/) {
+	next
+    }
+
+    # JCF, May-27-2022: there's a phenomenon where two warnings will appear in the same record, and the first is actually 
+    # the last (unwanted) performance-unnecessary-value-param warning at the end of an ERS line
+
+    if ($0 ~ /\[performance-unnecessary-value-param\].*\[[[:alnum:]-]+\]/) {
+	match($0, /\[performance-unnecessary-value-param\].*\n/)
+	printf("\n%s", substr($0, RSTART+RLENGTH))
+	next
+    }
+
+    # JCF, May-27-2022: a frequent idiom is to use bind to register a
+    # member function as a callback (with "this" as the bound
+    # variable); this strikes me as easier for both the programmer and
+    # the reader than the lambda function clang-tidy recommends
+
+    if ($0 ~ /\[modernize-avoid-bind\].*,[[:space:]]*this[[:space:]]*,/ ) {
+	next
+    }
+
+    # JCF, May-27-2022: clang-tidy's good at catching situations where
+    # using auto would be helpful, but we don't want it to complain if
+    # someone skipped auto to make it clear what the type passed to a
+    # templated function is. For example,
+    # serialization::deserialize<trigger_record_ptr_t>(trigger_record_bytes);
+
+    if ($0 ~ /\[modernize-use-auto\].*[[:alnum:]]+<[[:alnum:]]+>\(/ ) {
+	next
+    }
+
+    # Don't have header linting repeated
+    match($0, /[[:alnum:]]+.h[px][px]:[0-9]+:[0-9]+/) 
+
+    repeat = 0
+    if (RLENGTH != -1) {
+      header_line_and_loc = substr($0, RSTART, RLENGTH)
+      if (header_line_and_loc in header_complaints) {
+	  next
+      }
+      header_complaints[header_line_and_loc] = 1
     }
 
     print

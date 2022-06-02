@@ -102,26 +102,32 @@ else
     ups_get_clang
 fi
 
-
 files=$( echo $files | tr " " "\n" | sort | tr "\n" " " )
 DIR="$(dirname "$(readlink -f "$0")")"
 
 for file in $files ; do
 
-    if [[ $file =~ .*/Structs.hpp || $file =~ .*/Nljs.hpp ]]; then
-	continue
-    fi
+     if [[ $file =~ .*/Structs.hpp || $file =~ .*/Nljs.hpp ]]; then
+ 	continue
+     fi
 
-    echo
-    echo "Applying dunecpplint.sh"
-    $DIR/dunecpplint.sh $file
+     echo
+     echo "Applying dunecpplint.sh"
+     $DIR/dunecpplint.sh $file
+
+done
+
+for file in $files ; do
+
     if [[ "$file" =~ .*cxx$ || "$file" =~ .*cpp$ ]]; then
 	echo
-	echo "Applying duneclang-tidy.sh"
+	# JCF, May-27-2022: use of carets in echo below because duneclang-tidy_scrub_output.awk breaks records with carets rather than newlines
+	echo "^Applying duneclang-tidy.sh to ${file}^"
 	echo $DIR/duneclang-tidy.sh $compile_commands_dir $file
 	$DIR/duneclang-tidy.sh $compile_commands_dir $file
     fi
 
-done
+done |& awk -f $(dirname $0)/duneclang-tidy_scrub_output.awk
+
 
 exit 0
