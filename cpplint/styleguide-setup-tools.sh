@@ -4,7 +4,7 @@ HERE=$(cd $(dirname $(readlink -f ${BASH_SOURCE})) && pwd)
 
 function spack_get_clang() {
 
-    clang_spack_dir="/cvmfs/dunedaq.opensciencegrid.org/spack-externals"
+    clang_spack_dir="/cvmfs/dunedaq.opensciencegrid.org/spack/externals"
 
     if [[ -z $SPACK_ROOT ]]; then
 	echo "Error: the Spack environment doesn't seem to be set up. Exiting..." >&2
