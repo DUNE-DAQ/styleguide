@@ -109,8 +109,7 @@ familiar with the language.
 
 ## 1.  C++ Version 
 
-Currently, code should target C++17, i.e., should not use C++2x
-features.
+Currently, code should target C++20
 
 ## 2. Naming Conventions
 
