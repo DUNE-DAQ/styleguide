@@ -897,9 +897,9 @@ the user-visible value, not any implementation details.
 Take care that a given print statement not print so often that it
 obscures the output of other equally (or even more) important messages
 
-When constructing a string that contains variables, rather than
+<!--- When constructing a string that contains variables, rather than
 streaming them into a `std::stringstream` object, prefer to use
-C++20's `std::format` function.
+C++20's `std::format` function. --->
 
 ### 7.10  Increment and Decrement 
 
