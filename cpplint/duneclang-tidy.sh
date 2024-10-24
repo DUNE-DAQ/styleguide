@@ -108,7 +108,7 @@ fi
 # misc-non-private-member-variables-in-classes: since clang-tidy
 # bizarrely includes this complaint for structs
 
-# performance-unnecessary-copy-initialization: we don't really have a
+# modernize-use-default-member-init: we don't really have a
 # policy on this - not forbidden, not encouraged, use your best
 # judgement
 
@@ -185,6 +185,7 @@ performance-inefficient-string-concatenation,\
 performance-inefficient-vector-operation,\
 performance-move-const-arg,\
 performance-move-constructor-init,\
+performance-unnecessary-copy-initialization,\
 readability-const-return-type,\
 #readability-container-size-empty,\
 readability-deleted-default,\
@@ -221,7 +222,6 @@ hicpp-multiway-paths-covered,\
 misc-unconventional-assign-operator,\
 modernize-make-shared,\
 modernize-make-unique,\
-modernize-use-default-member-init,\
 modernize-use-emplace,\
 #modernize-use-nodiscard,\
 modernize-use-uncaught-exceptions,\
