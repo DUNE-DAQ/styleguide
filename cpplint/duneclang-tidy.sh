@@ -105,11 +105,24 @@ fi
 
 # Left out:
 
-# misc-non-private-member-variables-in-classes: since clang-tidy bizarrely includes this complaint for structs
+# misc-non-private-member-variables-in-classes: since clang-tidy
+# bizarrely includes this complaint for structs
+
+# performance-unnecessary-copy-initialization: we don't really have a
+# policy on this - not forbidden, not encouraged, use your best
+# judgement
+
+# misc-no-recursion: recursive functions aren't prohibited, and can be
+# useful (cf. the create_config_plot code in daqconf)
 
 # cppcoreguidelines-special-member-functions: as this is overly picky
 # ("if you explicitly define one of the five special member functions,
 # you must define them all")
+
+# performance-unnecessary-value-param: this *would* be useful, but
+# tragically it appears _all the time_ when it comes to defining
+# parameters for the ERS exception macro. For DUNE DAQ, then, this
+# warning's cost outweighs its benefit.
 
 musts="bugprone-assert-side-effect,\
 bugprone-copy-constructor-init,\
@@ -172,8 +185,6 @@ performance-inefficient-string-concatenation,\
 performance-inefficient-vector-operation,\
 performance-move-const-arg,\
 performance-move-constructor-init,\
-performance-unnecessary-copy-initialization,\
-performance-unnecessary-value-param,\
 readability-const-return-type,\
 #readability-container-size-empty,\
 readability-deleted-default,\
@@ -207,7 +218,6 @@ google-runtime-int,\
 google-runtime-operator,\
 hicpp-exception-baseclass,\
 hicpp-multiway-paths-covered,\
-misc-no-recursion,\
 misc-unconventional-assign-operator,\
 modernize-make-shared,\
 modernize-make-unique,\
