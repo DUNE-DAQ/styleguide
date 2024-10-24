@@ -5,13 +5,14 @@ HERE=$(cd $(dirname $(readlink -f ${BASH_SOURCE})) && pwd)
 function spack_get_clang() {
 
     clang_spack_dir="/cvmfs/dunedaq.opensciencegrid.org/spack/externals"
-
+    local llvm_version=15.0.7
+    
     if [[ -z $SPACK_ROOT ]]; then
 	echo "Error: the Spack environment doesn't seem to be set up. Exiting..." >&2
 	exit 100
     fi
 
-    llvmdir=$( spack find -p llvm | sed -r -n 's!.*('$clang_spack_dir'.*)$!\1!p' )
+    llvmdir=$( spack find -p llvm@$llvm_version | sed -r -n 's!.*('$clang_spack_dir'.*)$!\1!p' )
     
     if [[ -z $llvmdir ]]; then
 	echo "Spack appears to be set up (SPACK_ROOT == $SPACK_ROOT) but unable to find directory for package llvm. Exiting..." >&2
@@ -20,7 +21,7 @@ function spack_get_clang() {
 
     theclang=$( which clang 2>/dev/null )
     if ! [[ -n $( $theclang ) && "$theclang" =~ "^${llvmdir}/bin/clang" ]]; then
-	cmd="spack load llvm"
+	cmd="spack load llvm@$llvm_version"
 	$cmd
 	if [[ "$?" != "0" ]]; then
 	    echo "Unable to successfully call \"$cmd\"; exiting..." >&2
