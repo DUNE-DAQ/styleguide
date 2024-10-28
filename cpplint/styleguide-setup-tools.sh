@@ -5,7 +5,10 @@ HERE=$(cd $(dirname $(readlink -f ${BASH_SOURCE})) && pwd)
 function spack_get_clang() {
 
     clang_spack_dir="/cvmfs/dunedaq.opensciencegrid.org/spack/externals"
-    local llvm_version=15.0.7
+
+    # FOR TESTING PURPOSES, INTENTIONALLY SABOTAGE THINGS BY REQUESTING A NON-EXISTENT VERSION OF llvm 
+    #local llvm_version=15.0.7
+    local llvm_version=115.0.7
     
     if [[ -z $SPACK_ROOT ]]; then
 	echo "Error: the Spack environment doesn't seem to be set up. Exiting..." >&2
