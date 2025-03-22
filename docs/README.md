@@ -1242,7 +1242,7 @@ code is never going to be touched again, then this won't be a big
 issue. If we plan on altering it in the future, it may be worth at
 least getting it to be *somewhat* more conformant to the rules,
 especially if the changes are relatively non-invasive (e.g., running
-it through clang-format, as opposed to breaking up a long but
+it through `dbt-clang-format.sh`, as opposed to breaking up a long but
 well-tested function). If anything about the style in existing code
 may be confusing to future developers, it may be worth adding comments on
 how the style deviates from the standard. 
