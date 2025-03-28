@@ -1,5 +1,5 @@
 
-# DUNE DAQ C++ Style Guide (based on Google's C++ Style Guide)
+# C++ Style Guide (based on Google's C++ Style Guide)
 
 -------
 * Table of Contents
