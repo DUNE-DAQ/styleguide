@@ -1,7 +1,7 @@
 BEGIN {
     
     RS="^"
-
+    
     in_ers_lint=0
 
 }
@@ -29,6 +29,14 @@ BEGIN {
 	next
     }
 
+    # Get rid of spurious (and lengthy) complaint about template
+    # parameters in iomanager's FollyQueue.hpp as well as other
+    # spurious folly complaints (FollyMPMCQueue not existing, e.g.)
+
+    if ($0 ~ /Folly.*Queue/) {
+	next
+    }
+    
     # Get rid of complaints about ERS expansions
     if ($0 ~ /ERS_/) {
 	#printf("\nMatched ERS_, setting in_ers_lint to 1")
