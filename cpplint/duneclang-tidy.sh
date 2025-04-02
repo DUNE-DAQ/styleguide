@@ -278,7 +278,7 @@ for source_file in $source_files; do
     echo
     echo "=========================Checking $source_file========================="
 
-    clang-tidy -extra-arg=-ferror-limit=0 -p=$tmpdir -checks=${musts},${maybes} -config="{CheckOptions: [{key: cppcoreguidelines-narrowing-conversions.IgnoreConversionFromTypes, value: unsigned;size_t;ptrdiff_t;size_type;difference_type}, {key: performance-move-const-arg.CheckTriviallyCopyableMove, value: false}]}" -header-filter=.* $source_file |& awk -f $(dirname $0)/duneclang-tidy_scrub_output.awk
+    clang-tidy -extra-arg=-ferror-limit=0 -p=$tmpdir -checks=${musts},${maybes} -config="{CheckOptions: [{key: cppcoreguidelines-narrowing-conversions.IgnoreConversionFromTypes, value: unsigned;size_t;ptrdiff_t;size_type;difference_type}]}" -header-filter=.* $source_file |& awk -f $(dirname $0)/duneclang-tidy_scrub_output.awk
 
 done 
 
