@@ -112,22 +112,18 @@ for file in $files ; do
      fi
 
      echo
-     echo "Applying dunecpplint.sh"
+     echo "Applying dunecpplint.sh to ${file}"
      $DIR/dunecpplint.sh $file
 
-done
+     if [[ "$file" =~ .*cxx$ || "$file" =~ .*cpp$ ]]; then
+	 echo
 
-for file in $files ; do
+	 echo "Applying duneclang-tidy.sh to ${file}"
+	 echo $DIR/duneclang-tidy.sh $compile_commands_dir $file
+	 $DIR/duneclang-tidy.sh $compile_commands_dir $file
+     fi
 
-    if [[ "$file" =~ .*cxx$ || "$file" =~ .*cpp$ ]]; then
-	echo
-	# JCF, May-27-2022: use of carets in echo below because duneclang-tidy_scrub_output.awk breaks records with carets rather than newlines
-	echo "^Applying duneclang-tidy.sh to ${file}^"
-	echo $DIR/duneclang-tidy.sh $compile_commands_dir $file
-	$DIR/duneclang-tidy.sh $compile_commands_dir $file
-    fi
-
-done |& awk -f $(dirname $0)/duneclang-tidy_scrub_output.awk
+done 
 
 
 exit 0
