@@ -103,7 +103,7 @@ if [[ "$retval" != "0" ]]; then
     fi
 fi
 
-# Left out:
+# Some of the warnings/errors left out:
 
 # misc-non-private-member-variables-in-classes: since clang-tidy
 # bizarrely includes this complaint for structs
@@ -123,6 +123,7 @@ fi
 # tragically it appears _all the time_ when it comes to defining
 # parameters for the ERS exception macro. For DUNE DAQ, then, this
 # warning's cost outweighs its benefit.
+
 
 musts="bugprone-assert-side-effect,\
 bugprone-copy-constructor-init,\
@@ -277,9 +278,9 @@ for source_file in $source_files; do
     echo
     echo "=========================Checking $source_file========================="
 
-    clang-tidy -extra-arg=-ferror-limit=0 -p=$tmpdir -checks=${musts},${maybes} -config="{CheckOptions: [{key: cppcoreguidelines-narrowing-conversions.IgnoreConversionFromTypes, value: size_t;ptrdiff_t;size_type;difference_type}]}" -header-filter=.* $source_file |& awk -f $(dirname $0)/duneclang-tidy_scrub_output.awk
+    clang-tidy -extra-arg=-ferror-limit=0 -p=$tmpdir -checks=${musts},${maybes} -config="{CheckOptions: [{key: cppcoreguidelines-narrowing-conversions.IgnoreConversionFromTypes, value: unsigned;size_t;ptrdiff_t;size_type;difference_type}]}" -header-filter=.* $source_file |& awk -f $(dirname $0)/duneclang-tidy_scrub_output.awk
 
-done
+done 
 
 #echo "Deleting $tmpdir/compile_commands.json"
 rm -f $tmpdir/compile_commands.json

@@ -102,26 +102,28 @@ else
     ups_get_clang
 fi
 
-
 files=$( echo $files | tr " " "\n" | sort | tr "\n" " " )
 DIR="$(dirname "$(readlink -f "$0")")"
 
 for file in $files ; do
 
-    if [[ $file =~ .*/Structs.hpp || $file =~ .*/Nljs.hpp ]]; then
-	continue
-    fi
+     if [[ $file =~ .*/Structs.hpp || $file =~ .*/Nljs.hpp ]]; then
+ 	continue
+     fi
 
-    echo
-    echo "Applying dunecpplint.sh"
-    $DIR/dunecpplint.sh $file
-    if [[ "$file" =~ .*cxx$ || "$file" =~ .*cpp$ ]]; then
-	echo
-	echo "Applying duneclang-tidy.sh"
-	echo $DIR/duneclang-tidy.sh $compile_commands_dir $file
-	$DIR/duneclang-tidy.sh $compile_commands_dir $file
-    fi
+     echo
+     echo "Applying dunecpplint.sh to ${file}"
+     $DIR/dunecpplint.sh $file
 
-done
+     if [[ "$file" =~ .*cxx$ || "$file" =~ .*cpp$ ]]; then
+	 echo
+
+	 echo "Applying duneclang-tidy.sh to ${file}"
+	 echo $DIR/duneclang-tidy.sh $compile_commands_dir $file
+	 $DIR/duneclang-tidy.sh $compile_commands_dir $file
+     fi
+
+done 
+
 
 exit 0
