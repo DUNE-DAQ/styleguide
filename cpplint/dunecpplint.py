@@ -2825,7 +2825,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
   line = clean_lines.lines[linenum]
 
   for output_token in ["printf", "cout", "cerr"]:
-    if Search(r'[\s:]%s[ .<]' % (output_token), line):
+    if Search(r'[\s:]%s[ .<(]' % (output_token), line):
       error(filename, linenum, 'runtime/output_format', 3,
             '\"%s\" should not be used for output in DUNE DAQ software.' % (output_token))
 
