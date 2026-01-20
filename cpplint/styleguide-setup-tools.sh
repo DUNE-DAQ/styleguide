@@ -26,6 +26,15 @@ function spack_get_clang() {
 	    echo "Unable to successfully call \"$cmd\"; exiting..." >&2
 	    exit 11
 	fi
+
+	# Ensure clang-tidy accesses the gcc-runtime corresponding to the gcc it was built with
+	gcc_version=$( gcc --version | head -1 | sed -r 's/.*\s+([0-9]+\.[0-9]+\.[0-9]+).*/\1/' )
+	cmd="spack load gcc-runtime@$gcc_version"
+	$cmd
+	if [[ "$?" != "0" ]]; then
+            echo "Unable to successfully call \"$cmd\"; exiting..." >&2
+            exit 31
+        fi
     fi
 }
 
