@@ -1,11 +1,15 @@
-#!/usr/bin/env python3
+#!/bin/env python
 """DUNE-specific overrides layered on top of vendored upstream cpplint."""
 
+import re
 import cpplint as _upstream_cpplint
 
-for _name, _value in _upstream_cpplint.__dict__.items():
-  if _name not in ('__name__', '__doc__', '__package__', '__loader__', '__spec__'):
-    globals()[_name] = _value
+# Re-export upstream symbols so existing dunecpplint imports keep working.
+for _name in dir(_upstream_cpplint):
+  if not _name.startswith('__'):
+    globals()[_name] = getattr(_upstream_cpplint, _name)
+
+_RE_PATTERN_INCLUDE = re.compile(r'^\s*#\s*include\s*([<"])([^>"]*)[>"].*$')
 
 _USAGE = """
 Usage: dunecpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
@@ -551,7 +555,7 @@ def CheckLanguage(filename, clean_lines, linenum, file_extension,
           ' for more information.')
 
 for _override_name in ('PrintUsage', 'CheckForCopyright', 'CheckForNonStandardConstructs', 'CheckLanguage'):
-  _upstream_cpplint.__dict__[_override_name] = globals()[_override_name]
+  setattr(_upstream_cpplint, _override_name, globals()[_override_name])
 
 def main():
   return _upstream_cpplint.main()
