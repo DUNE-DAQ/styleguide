@@ -613,6 +613,8 @@ class ErrorSuppressions(object):
 
   def _AddSuppression(self, category, line_range):
     suppressed = self._suppressions.setdefault(category, [])
+    # Skip adding duplicate/overlapping ranges when the most recent range
+    # already fully contains this one.
     if not (suppressed and suppressed[-1].ContainsRange(line_range)):
       suppressed.append(line_range)
 
@@ -715,12 +717,16 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
           error(filename, linenum, 'readability/nolint', 5,
                 'Not in a NOLINT block')
         else:
+          # Ignore categorized NOLINTEND outside a block to avoid flagging
+          # directives for other tools.
           return
 
       def ProcessCategory(category):
         if category is not None:
           error(filename, linenum, 'readability/nolint', 5,
                 'NOLINT categories not supported in block END: %s' % category)
+        # Even after reporting malformed END(category), terminate the open block
+        # to avoid leaking suppression to subsequent lines.
         _error_suppressions.EndBlockSuppression(linenum)
     else:
       def ProcessCategory(category):
