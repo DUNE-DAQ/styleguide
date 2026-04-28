@@ -704,6 +704,41 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
   matched = Search(r'\bNOLINT(NEXTLINE|BEGIN|END)?\b(\([^)]+\))?', raw_line)
   if matched:
     no_lint_type = matched.group(1)
+    categories = matched.group(2)
+
+    if no_lint_type == 'END':
+      if categories in (None, '(*)'):
+        if not _error_suppressions.HasOpenBlock():
+          error(filename, linenum, 'readability/nolint', 5,
+                'Not in a NOLINT block')
+        else:
+          _error_suppressions.EndBlockSuppression(linenum)
+        return
+
+      if categories.startswith('(') and categories.endswith(')'):
+        parsed_categories = []
+        for category in [c.strip() for c in categories[1:-1].split(',')]:
+          if category and category not in parsed_categories:
+            parsed_categories.append(category)
+
+        all_external = parsed_categories and all(
+            any(category.startswith(prefix)
+                for prefix in _OTHER_NOLINT_CATEGORY_PREFIXES)
+            for category in parsed_categories)
+
+        if not _error_suppressions.HasOpenBlock():
+          if not all_external:
+            error(filename, linenum, 'readability/nolint', 5,
+                  'Not in a NOLINT block')
+        else:
+          error(filename, linenum, 'readability/nolint', 5,
+                'NOLINT categories not supported in block END: %s' %
+                ', '.join(parsed_categories))
+          # Even after reporting malformed END(category), terminate the open
+          # block to avoid leaking suppression to subsequent lines.
+          _error_suppressions.EndBlockSuppression(linenum)
+        return
+
     if no_lint_type == 'NEXTLINE':
       def ProcessCategory(category):
         _error_suppressions.AddLineSuppression(category, linenum + 1)
@@ -715,31 +750,18 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
 
       def ProcessCategory(category):
         _error_suppressions.StartBlockSuppression(category, linenum)
-    elif no_lint_type == 'END':
-      if not _error_suppressions.HasOpenBlock():
-        def ProcessCategory(category):
-          if (category is None or
-              not any(category.startswith(prefix)
-                      for prefix in _OTHER_NOLINT_CATEGORY_PREFIXES)):
-            error(filename, linenum, 'readability/nolint', 5,
-                  'Not in a NOLINT block')
-      else:
-        def ProcessCategory(category):
-          if category is not None:
-            error(filename, linenum, 'readability/nolint', 5,
-                  'NOLINT categories not supported in block END: %s' % category)
-          # Even after reporting malformed END(category), terminate the open
-          # block to avoid leaking suppression to subsequent lines.
-          _error_suppressions.EndBlockSuppression(linenum)
     else:
       def ProcessCategory(category):
         _error_suppressions.AddLineSuppression(category, linenum)
 
-    categories = matched.group(2)
     if categories in (None, '(*)'):  # => "suppress all"
       ProcessCategory(None)
     elif categories.startswith('(') and categories.endswith(')'):
-      for category in set(c.strip() for c in categories[1:-1].split(',')):
+      parsed_categories = []
+      for category in [c.strip() for c in categories[1:-1].split(',')]:
+        if category and category not in parsed_categories:
+          parsed_categories.append(category)
+      for category in parsed_categories:
         if category in _ERROR_CATEGORIES:
           ProcessCategory(category)
         elif any(category.startswith(prefix)
