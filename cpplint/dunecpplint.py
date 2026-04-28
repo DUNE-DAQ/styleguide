@@ -234,8 +234,8 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum, *args):
            filename, line number, error level, and message
   """
   if len(args) == 2:
-    function_state = None
     nesting_state, error = args
+    function_state = None
   elif len(args) == 3:
     function_state, nesting_state, error = args
   else:
@@ -335,10 +335,12 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum, *args):
           'An "." or ".." was used in an #include; relative paths are disallowed.')
 
   classinfo = nesting_state.InnermostClass()
-  in_a_function = getattr(function_state, 'in_a_function', True)
   
   if Search(r'static\s+', line):
-    if not classinfo and not in_a_function and not nesting_state.InClassDeclaration():
+    if (function_state is not None and
+        not classinfo and
+        not function_state.in_a_function and
+        not nesting_state.InClassDeclaration()):
       error(filename, linenum, 'build/namespaces', 5,
             'static storage declaration outside of class or function not allowed (if this isn\'t a header, please contact John Freeman)')
 
