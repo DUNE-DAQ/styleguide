@@ -21,6 +21,8 @@ for _name in dir(_upstream_cpplint):
   if not _name.startswith('__'):
     globals()[_name] = getattr(_upstream_cpplint, _name)
 
+_ORIGINAL_GET_HEADER_GUARD_CPP_VARIABLE = _upstream_cpplint.GetHeaderGuardCPPVariable
+
 _RE_PATTERN_INCLUDE = re.compile(r'^\s*#\s*include\s*([<"])([^>"]*)[>"].*$')
 
 _USAGE = """
@@ -207,6 +209,26 @@ def CheckForCopyright(filename, lines, error):
   if matching_lines != 2:
     error(filename, 0, 'legal/copyright', 5,
           'The standard copyright message wasn\'t found.')
+
+def GetHeaderGuardCPPVariable(filename):
+  """Returns DUNE-style CPP variable for use as a header guard."""
+  cppvar = _ORIGINAL_GET_HEADER_GUARD_CPP_VARIABLE(filename)
+  repository_name = FileInfo(filename).RepositoryName().replace('\\', '/')
+
+  include_path = None
+  if repository_name.startswith('include/'):
+    include_path = repository_name
+  else:
+    include_marker = '/include/'
+    marker_index = repository_name.find(include_marker)
+    if marker_index != -1:
+      include_path = repository_name[marker_index + 1:]
+
+  if include_path is None:
+    return cppvar
+
+  return re.sub(r'[^a-zA-Z0-9]', '_', include_path).upper() + '_'
+
 def CheckForNonStandardConstructs(filename, clean_lines, linenum, *args):
   r"""Logs an error if we see certain non-ANSI constructs ignored by gcc-2.
 
@@ -440,6 +462,9 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum, *args):
       if noarg_constructor:
         error(filename, linenum, 'runtime/explicit', 5,
               'Zero-parameter constructors should not be marked explicit.')
+
+
+CheckForNonStandardConstructs.ClassAccessSpecifiers = {}
 def CheckLanguage(filename, clean_lines, linenum, file_extension,
                   include_state, nesting_state, error):
   """Checks rules from the 'C++ language rules' section of cppguide.html.
@@ -580,7 +605,7 @@ def CheckLanguage(filename, clean_lines, linenum, file_extension,
           ' for more information.')
 
 # Register DUNE-specific overrides in the vendored cpplint module before main().
-for _override_name in ('PrintUsage', 'CheckForCopyright', 'CheckForNonStandardConstructs', 'CheckLanguage'):
+for _override_name in ('PrintUsage', 'CheckForCopyright', 'GetHeaderGuardCPPVariable', 'CheckForNonStandardConstructs', 'CheckLanguage'):
   setattr(_upstream_cpplint, _override_name, globals()[_override_name])
 
 def main():
