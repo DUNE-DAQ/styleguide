@@ -207,8 +207,7 @@ def CheckForCopyright(filename, lines, error):
   if matching_lines != 2:
     error(filename, 0, 'legal/copyright', 5,
           'The standard copyright message wasn\'t found.')
-def CheckForNonStandardConstructs(filename, clean_lines, linenum,
-                                  function_state, nesting_state, error):
+def CheckForNonStandardConstructs(filename, clean_lines, linenum, *args):
   r"""Logs an error if we see certain non-ANSI constructs ignored by gcc-2.
 
   Complain about several constructs which gcc-2 accepts, but which are
@@ -229,11 +228,18 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
     filename: The name of the current file.
     clean_lines: A CleansedLines instance containing the file.
     linenum: The number of the line to check.
-    nesting_state: A NestingState instance which maintains information about
-                   the current stack of nested blocks being parsed.
+    args: Either ``(nesting_state, error)`` for newer upstream cpplint or
+          ``(function_state, nesting_state, error)`` for older versions.
     error: A callable to which errors are reported, which takes 4 arguments:
            filename, line number, error level, and message
   """
+  if len(args) == 2:
+    function_state = None
+    nesting_state, error = args
+  elif len(args) == 3:
+    function_state, nesting_state, error = args
+  else:
+    raise TypeError('CheckForNonStandardConstructs expected 2 or 3 trailing arguments, got %d' % (len(args),))
 
   # Remove comments from the line, but leave in strings for now.
   line = clean_lines.lines[linenum]
@@ -329,9 +335,10 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
           'An "." or ".." was used in an #include; relative paths are disallowed.')
 
   classinfo = nesting_state.InnermostClass()
+  in_a_function = getattr(function_state, 'in_a_function', True)
   
   if Search(r'static\s+', line):
-    if not classinfo and not function_state.in_a_function and not nesting_state.InClassDeclaration():
+    if not classinfo and not in_a_function and not nesting_state.InClassDeclaration():
       error(filename, linenum, 'build/namespaces', 5,
             'static storage declaration outside of class or function not allowed (if this isn\'t a header, please contact John Freeman)')
 
