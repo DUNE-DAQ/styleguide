@@ -665,9 +665,6 @@ class ErrorSuppressions(object):
     self._open_block_suppression = None
     self._open_block_categories = None
 
-
-# {str, set(int)}: a map from error categories to sets of line ranges
-# on which those errors are expected and should be suppressed.
 _error_suppressions = ErrorSuppressions()
 
 # The root directory used for deriving header guard CPP variable.
@@ -3018,7 +3015,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
           'Use of Run Time Type Information not allowed unless this code is meant to test other code' )
 
   if Search(r'[^a-zA-Z]NULL[^a-zA-Z]', line):
-    error(filename, linenum, 'build/null_usage', 5, 
+    error(filename, linenum, 'build/null_usage', 5,
           'Use of NULL #define found; prefer using the nullptr keyword')
 
   if Search(r'[^\w]delete\s+', line) or Search(r'^delete\s+', line):
@@ -3034,7 +3031,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
     elif not Search(r'catch\s*\(.*&.*\)', line):
       error(filename, linenum, 'runtime/exceptions', 5,
         'An exception appears to be getting caught here, but not via a reference. ' )
-    
+
   if Search(r'(\+\+|\-\-)\w', line) and not Search(r'^\s*(\+\+|\-\-)[\w\[\]0-9\.]+[\s;){]*$', line) and \
       not Search(r'(for|while)\s*\(.*(\+\+|\-\-)\w.*\)', line):
     error(filename, linenum, 'runtime/increment_decrement', 5,
@@ -3054,7 +3051,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
           'An "." or ".." was used in an #include; relative paths are disallowed.')
 
   classinfo = nesting_state.InnermostClass()
-  
+
   if Search(r'static\s+', line):
     if not classinfo and not function_state.in_a_function and not nesting_state.InClassDeclaration():
       error(filename, linenum, 'build/namespaces', 5,
@@ -3076,7 +3073,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
 
       if match.group(1) == "public" and ("private" in CheckForNonStandardConstructs.ClassAccessSpecifiers[classinfo.name] or \
                                          "protected" in CheckForNonStandardConstructs.ClassAccessSpecifiers[classinfo.name]):
-        error(filename, linenum, 'readability/access_specifiers', 5, 
+        error(filename, linenum, 'readability/access_specifiers', 5,
               'Access specifier \"public:\" appears after one (or both) of \"private:\" and/or \"protected:\", not before')
       if match.group(1) == "protected" and "private" in CheckForNonStandardConstructs.ClassAccessSpecifiers[classinfo.name]:
         error(filename, linenum, 'readability/access_specifiers', 5,
@@ -3369,7 +3366,7 @@ def CheckComment(line, filename, linenum, next_line_start, error):
           error(filename, linenum, 'readability/todo', 2,
                 'Missing date in TODO comment; it should appear on same line as the TODO, preferably in a form like "Apr-14-2020"')
 
-        
+
         if not Search(r"TODO.*[A-Z]\w+ [A-Z]\w+", line[commentpos:]) and \
            not Search(r"TODO.*\s[A-Z][A-Z][A-Z]\s", line[commentpos:]):
           error(filename, linenum, 'readability/todo', 2,
@@ -4521,7 +4518,7 @@ def GetLineWidth(line):
           is_low_surrogate = 0xDC00 <= ord(uc) <= 0xDFFF
           if not is_wide_build and is_low_surrogate:
             width -= 1
-          
+
         width += 1
     return width
   else:
@@ -4789,7 +4786,7 @@ def CheckIncludeLine(filename, clean_lines, linenum, include_state, error):
       include_state.include_list[-1].append((include, linenum))
 
       # We want to ensure that headers appear in the right order:
-      # 1) for foo.cc, foo.hh 
+      # 1) for foo.cc, foo.hh
       # 2) other non-system headers
       # 3) c system files
       # 4) cpp system files
@@ -5490,7 +5487,7 @@ def CheckCStyleCast(filename, clean_lines, linenum, cast_type, pattern, error):
     return False
 
   # At this point, all that should be left is actual casts.
-  
+
   if cast_type != "reinterpret_cast":
     error(filename, linenum, 'readability/casting', 4,
           'Using C-style cast.  Use %s<%s>(...) instead' %
