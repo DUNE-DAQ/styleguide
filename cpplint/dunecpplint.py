@@ -715,7 +715,7 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
           _error_suppressions.EndBlockSuppression(linenum)
         return
 
-      if categories.startswith('(') and categories.endswith(')'):
+      if categories and categories.startswith('(') and categories.endswith(')'):
         parsed_categories = []
         for category in [c.strip() for c in categories[1:-1].split(',')]:
           if category and category not in parsed_categories:
@@ -756,7 +756,7 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
 
     if categories in (None, '(*)'):  # => "suppress all"
       ProcessCategory(None)
-    elif categories.startswith('(') and categories.endswith(')'):
+    elif categories and categories.startswith('(') and categories.endswith(')'):
       parsed_categories = []
       for category in [c.strip() for c in categories[1:-1].split(',')]:
         if category and category not in parsed_categories:
