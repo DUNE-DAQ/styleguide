@@ -590,6 +590,7 @@ _SEARCH_C_FILE = re.compile(r'\b(?:LINT_C_FILE|'
 _SEARCH_KERNEL_FILE = re.compile(r'\b(?:LINT_KERNEL_FILE)')
 
 _regexp_compile_cache = {}
+_SUPPRESSION_MAX_LINENUM = sys.maxsize
 
 class ErrorSuppressions(object):
   """Tracks all error suppressions for cpplint."""
@@ -624,14 +625,14 @@ class ErrorSuppressions(object):
     return -1
 
   def AddGlobalSuppression(self, category):
-    self._AddSuppression(category, self.LineRange(0, float('inf')))
+    self._AddSuppression(category, self.LineRange(0, _SUPPRESSION_MAX_LINENUM))
 
   def AddLineSuppression(self, category, linenum):
     self._AddSuppression(category, self.LineRange(linenum, linenum))
 
   def StartBlockSuppression(self, category, linenum):
     if self._open_block_suppression is None:
-      self._open_block_suppression = self.LineRange(linenum, float('inf'))
+      self._open_block_suppression = self.LineRange(linenum, _SUPPRESSION_MAX_LINENUM)
     self._AddSuppression(category, self._open_block_suppression)
 
   def EndBlockSuppression(self, linenum):
@@ -640,8 +641,11 @@ class ErrorSuppressions(object):
       self._open_block_suppression = None
 
   def IsSuppressed(self, category, linenum):
-    suppressed = self._suppressions.get(category, []) + self._suppressions.get(None, [])
-    return any(linenum in line_range for line_range in suppressed)
+    for suppressed in (self._suppressions.get(category, []),
+                       self._suppressions.get(None, [])):
+      if any(linenum in line_range for line_range in suppressed):
+        return True
+    return False
 
   def HasOpenBlock(self):
     return self._open_block_suppression is not None
@@ -713,21 +717,20 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
         _error_suppressions.StartBlockSuppression(category, linenum)
     elif no_lint_type == 'END':
       if not _error_suppressions.HasOpenBlock():
-        if matched.group(2) in (None, '(*)'):
-          error(filename, linenum, 'readability/nolint', 5,
-                'Not in a NOLINT block')
-        else:
-          # Ignore categorized NOLINTEND outside a block to avoid flagging
-          # directives for other tools.
-          return
-
-      def ProcessCategory(category):
-        if category is not None:
-          error(filename, linenum, 'readability/nolint', 5,
-                'NOLINT categories not supported in block END: %s' % category)
-        # Even after reporting malformed END(category), terminate the open block
-        # to avoid leaking suppression to subsequent lines.
-        _error_suppressions.EndBlockSuppression(linenum)
+        def ProcessCategory(category):
+          if (category is None or
+              not any(category.startswith(prefix)
+                      for prefix in _OTHER_NOLINT_CATEGORY_PREFIXES)):
+            error(filename, linenum, 'readability/nolint', 5,
+                  'Not in a NOLINT block')
+      else:
+        def ProcessCategory(category):
+          if category is not None:
+            error(filename, linenum, 'readability/nolint', 5,
+                  'NOLINT categories not supported in block END: %s' % category)
+          # Even after reporting malformed END(category), terminate the open
+          # block to avoid leaking suppression to subsequent lines.
+          _error_suppressions.EndBlockSuppression(linenum)
     else:
       def ProcessCategory(category):
         _error_suppressions.AddLineSuppression(category, linenum)
