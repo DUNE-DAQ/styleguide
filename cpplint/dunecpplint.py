@@ -228,15 +228,18 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum, *args):
     filename: The name of the current file.
     clean_lines: A CleansedLines instance containing the file.
     linenum: The number of the line to check.
-    args: Either ``(nesting_state, error)`` for newer upstream cpplint or
-          ``(function_state, nesting_state, error)`` for older versions.
+    args: Supports both upstream call signatures for compatibility:
+          ``(nesting_state, error)`` in newer cpplint and
+          ``(function_state, nesting_state, error)`` in older cpplint.
     error: A callable to which errors are reported, which takes 4 arguments:
            filename, line number, error level, and message
   """
   if len(args) == 2:
+    # Newer vendored cpplint calls without function_state.
     nesting_state, error = args
     function_state = None
   elif len(args) == 3:
+    # Older vendored cpplint passes function_state explicitly.
     function_state, nesting_state, error = args
   else:
     raise TypeError('CheckForNonStandardConstructs expected 2 or 3 trailing arguments, got %d' % (len(args),))
@@ -337,6 +340,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum, *args):
   classinfo = nesting_state.InnermostClass()
   
   if Search(r'static\s+', line):
+    # The function-scope check is only possible when function_state is provided.
     if (function_state is not None and
         not classinfo and
         not function_state.in_a_function and
