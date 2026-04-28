@@ -1,5 +1,9 @@
 #!/bin/env python
-"""DUNE-specific overrides layered on top of vendored upstream cpplint."""
+"""DUNE-specific overrides layered on top of vendored upstream cpplint.
+
+This module loads the sibling vendored ``cpplint.py`` directly and overrides
+only the DUNE-specific behavior while re-exporting the upstream API.
+"""
 
 import re
 import importlib.util
@@ -8,7 +12,7 @@ from pathlib import Path
 _CPPLINT_PATH = Path(__file__).resolve().with_name('cpplint.py')
 _CPPLINT_SPEC = importlib.util.spec_from_file_location('dune_vendored_cpplint', _CPPLINT_PATH)
 if _CPPLINT_SPEC is None or _CPPLINT_SPEC.loader is None:
-  raise ImportError('Unable to load vendored cpplint.py')
+  raise ImportError('Unable to load vendored cpplint.py at %s' % (_CPPLINT_PATH,))
 _upstream_cpplint = importlib.util.module_from_spec(_CPPLINT_SPEC)
 _CPPLINT_SPEC.loader.exec_module(_upstream_cpplint)
 
@@ -562,6 +566,7 @@ def CheckLanguage(filename, clean_lines, linenum, file_extension,
           'the Unnamed Namespaces and Static Variables section of https://dune-daq-sw.readthedocs.io/en/latest/packages/styleguide/'
           ' for more information.')
 
+# Register DUNE-specific overrides in the vendored cpplint module before main().
 for _override_name in ('PrintUsage', 'CheckForCopyright', 'CheckForNonStandardConstructs', 'CheckLanguage'):
   setattr(_upstream_cpplint, _override_name, globals()[_override_name])
 
