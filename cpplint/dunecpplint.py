@@ -294,6 +294,36 @@ _LEGACY_ERROR_CATEGORIES = [
     'readability/function',
     ]
 
+# These prefixes for categories should be ignored since they relate to other
+# tools which also use the NOLINT syntax, e.g. clang-tidy.
+_OTHER_NOLINT_CATEGORY_PREFIXES = [
+    'clang-analyzer-',
+    'abseil-',
+    'altera-',
+    'android-',
+    'boost-',
+    'bugprone-',
+    'cert-',
+    'concurrency-',
+    'cppcoreguidelines-',
+    'darwin-',
+    'fuchsia-',
+    'google-',
+    'hicpp-',
+    'linuxkernel-',
+    'llvm-',
+    'llvmlibc-',
+    'misc-',
+    'modernize-',
+    'mpi-',
+    'objc-',
+    'openmp-',
+    'performance-',
+    'portability-',
+    'readability-',
+    'zircon-',
+    ]
+
 # The default state of the category filter. This is overridden by the --filter=
 # flag. By default all errors are on, so only add here categories that should be
 # off by default (i.e., categories that must be enabled by the --filter= flags).
@@ -560,10 +590,82 @@ _SEARCH_C_FILE = re.compile(r'\b(?:LINT_C_FILE|'
 _SEARCH_KERNEL_FILE = re.compile(r'\b(?:LINT_KERNEL_FILE)')
 
 _regexp_compile_cache = {}
+_SUPPRESSION_MAX_LINENUM = sys.maxsize
 
-# {str, set(int)}: a map from error categories to sets of linenumbers
-# on which those errors are expected and should be suppressed.
-_error_suppressions = {}
+class ErrorSuppressions(object):
+  """Tracks all error suppressions for cpplint."""
+
+  class LineRange(object):
+    """Represents an inclusive range of line numbers."""
+
+    def __init__(self, begin, end):
+      self.begin = begin
+      self.end = end
+
+    def __contains__(self, obj):
+      return self.begin <= obj <= self.end
+
+    def ContainsRange(self, other):
+      return self.begin <= other.begin and self.end >= other.end
+
+  def __init__(self):
+    self._suppressions = {}
+    self._open_block_suppression = None
+    self._open_block_categories = None
+
+  def _AddSuppression(self, category, line_range):
+    suppressed = self._suppressions.setdefault(category, [])
+    # Skip adding duplicate/overlapping ranges when the most recent range
+    # already fully contains this one.
+    if not (suppressed and suppressed[-1].ContainsRange(line_range)):
+      suppressed.append(line_range)
+
+  def GetOpenBlockStart(self):
+    if self._open_block_suppression:
+      return self._open_block_suppression.begin
+    return -1
+
+  def AddGlobalSuppression(self, category):
+    self._AddSuppression(category, self.LineRange(0, _SUPPRESSION_MAX_LINENUM))
+
+  def AddLineSuppression(self, category, linenum):
+    self._AddSuppression(category, self.LineRange(linenum, linenum))
+
+  def StartBlockSuppression(self, category, linenum):
+    if self._open_block_suppression is None:
+      self._open_block_suppression = self.LineRange(linenum, _SUPPRESSION_MAX_LINENUM)
+      self._open_block_categories = []
+    if category not in self._open_block_categories:
+      self._open_block_categories.append(category)
+    self._AddSuppression(category, self._open_block_suppression)
+
+  def EndBlockSuppression(self, linenum):
+    if self._open_block_suppression:
+      self._open_block_suppression.end = linenum
+      self._open_block_suppression = None
+      self._open_block_categories = None
+
+  def GetOpenBlockCategories(self):
+    if self._open_block_categories is None:
+      return []
+    return list(self._open_block_categories)
+
+  def IsSuppressed(self, category, linenum):
+    for suppressed in (self._suppressions.get(category, []),
+                       self._suppressions.get(None, [])):
+      if any(linenum in line_range for line_range in suppressed):
+        return True
+    return False
+
+  def HasOpenBlock(self):
+    return self._open_block_suppression is not None
+
+  def Clear(self):
+    self._suppressions.clear()
+    self._open_block_suppression = None
+    self._open_block_categories = None
+
+_error_suppressions = ErrorSuppressions()
 
 # The root directory used for deriving header guard CPP variable.
 # This is set by --root flag.
@@ -581,10 +683,6 @@ _valid_extensions = set(['cc', 'h', 'cpp', 'cu', 'cuh'])
 # Treat all headers starting with 'h' equally: .h, .hpp, .hxx etc.
 # This is set by --headers flag.
 _hpp_headers = set(['h'])
-
-# {str, bool}: a map from error categories to booleans which indicate if the
-# category should be suppressed for every line.
-_global_error_suppressions = {}
 
 def ProcessHppHeadersOption(val):
   global _hpp_headers
@@ -611,20 +709,61 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
     linenum: int, the number of the current line.
     error: function, an error handler.
   """
-  matched = Search(r'\bNOLINT(NEXTLINE)?\b(\([^)]+\))?', raw_line)
+  matched = Search(r'\bNOLINT(NEXTLINE|BEGIN|END)?\b(\([^)]+\))?', raw_line)
   if matched:
-    if matched.group(1):
-      suppressed_line = linenum + 1
+    no_lint_type = matched.group(1)
+    categories = matched.group(2)
+
+    if no_lint_type == 'END':
+      if not _error_suppressions.HasOpenBlock():
+        error(filename, linenum, 'readability/nolint', 5,
+              'Not in a NOLINT block')
+        return
+
+      parsed_categories = []
+      if categories in (None, '(*)'):
+        parsed_categories = [None]
+      elif categories and categories.startswith('(') and categories.endswith(')'):
+        for category in [c.strip() for c in categories[1:-1].split(',')]:
+          if category and category not in parsed_categories:
+            parsed_categories.append(category)
+
+      if sorted(parsed_categories) != sorted(_error_suppressions.GetOpenBlockCategories()):
+        error(filename, linenum, 'readability/nolint', 5,
+              'NOLINTEND category does not match NOLINTBEGIN')
+
+      # Always close the block at NOLINTEND so suppression does not leak.
+      _error_suppressions.EndBlockSuppression(linenum)
+      return
+
+    if no_lint_type == 'NEXTLINE':
+      def ProcessCategory(category):
+        _error_suppressions.AddLineSuppression(category, linenum + 1)
+    elif no_lint_type == 'BEGIN':
+      if _error_suppressions.HasOpenBlock():
+        error(filename, linenum, 'readability/nolint', 5,
+              'NOLINT block already defined on line %d' %
+              _error_suppressions.GetOpenBlockStart())
+
+      def ProcessCategory(category):
+        _error_suppressions.StartBlockSuppression(category, linenum)
     else:
-      suppressed_line = linenum
-    category = matched.group(2)
-    if category in (None, '(*)'):  # => "suppress all"
-      _error_suppressions.setdefault(None, set()).add(suppressed_line)
-    else:
-      if category.startswith('(') and category.endswith(')'):
-        category = category[1:-1]
+      def ProcessCategory(category):
+        _error_suppressions.AddLineSuppression(category, linenum)
+
+    if categories in (None, '(*)'):  # => "suppress all"
+      ProcessCategory(None)
+    elif categories and categories.startswith('(') and categories.endswith(')'):
+      parsed_categories = []
+      for category in [c.strip() for c in categories[1:-1].split(',')]:
+        if category and category not in parsed_categories:
+          parsed_categories.append(category)
+      for category in parsed_categories:
         if category in _ERROR_CATEGORIES:
-          _error_suppressions.setdefault(category, set()).add(suppressed_line)
+          ProcessCategory(category)
+        elif any(category.startswith(prefix)
+                 for prefix in _OTHER_NOLINT_CATEGORY_PREFIXES):
+          pass
         elif category not in _LEGACY_ERROR_CATEGORIES:
           error(filename, linenum, 'readability/nolint', 5,
                 'Unknown NOLINT error category: %s' % category)
@@ -642,16 +781,15 @@ def ProcessGlobalSuppresions(lines):
   for line in lines:
     if _SEARCH_C_FILE.search(line):
       for category in _DEFAULT_C_SUPPRESSED_CATEGORIES:
-        _global_error_suppressions[category] = True
+        _error_suppressions.AddGlobalSuppression(category)
     if _SEARCH_KERNEL_FILE.search(line):
       for category in _DEFAULT_KERNEL_SUPPRESSED_CATEGORIES:
-        _global_error_suppressions[category] = True
+        _error_suppressions.AddGlobalSuppression(category)
 
 
 def ResetNolintSuppressions():
   """Resets the set of NOLINT suppressions to empty."""
-  _error_suppressions.clear()
-  _global_error_suppressions.clear()
+  _error_suppressions.Clear()
 
 
 def IsErrorSuppressedByNolint(category, linenum):
@@ -667,9 +805,7 @@ def IsErrorSuppressedByNolint(category, linenum):
     bool, True iff the error should be suppressed due to a NOLINT comment or
     global suppression.
   """
-  return (_global_error_suppressions.get(category, False) or
-          linenum in _error_suppressions.get(category, set()) or
-          linenum in _error_suppressions.get(None, set()))
+  return _error_suppressions.IsSuppressed(category, linenum)
 
 
 def Match(pattern, s):
@@ -2879,7 +3015,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
           'Use of Run Time Type Information not allowed unless this code is meant to test other code' )
 
   if Search(r'[^a-zA-Z]NULL[^a-zA-Z]', line):
-    error(filename, linenum, 'build/null_usage', 5, 
+    error(filename, linenum, 'build/null_usage', 5,
           'Use of NULL #define found; prefer using the nullptr keyword')
 
   if Search(r'[^\w]delete\s+', line) or Search(r'^delete\s+', line):
@@ -2895,7 +3031,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
     elif not Search(r'catch\s*\(.*&.*\)', line):
       error(filename, linenum, 'runtime/exceptions', 5,
         'An exception appears to be getting caught here, but not via a reference. ' )
-    
+
   if Search(r'(\+\+|\-\-)\w', line) and not Search(r'^\s*(\+\+|\-\-)[\w\[\]0-9\.]+[\s;){]*$', line) and \
       not Search(r'(for|while)\s*\(.*(\+\+|\-\-)\w.*\)', line):
     error(filename, linenum, 'runtime/increment_decrement', 5,
@@ -2915,7 +3051,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
           'An "." or ".." was used in an #include; relative paths are disallowed.')
 
   classinfo = nesting_state.InnermostClass()
-  
+
   if Search(r'static\s+', line):
     if not classinfo and not function_state.in_a_function and not nesting_state.InClassDeclaration():
       error(filename, linenum, 'build/namespaces', 5,
@@ -2937,7 +3073,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
 
       if match.group(1) == "public" and ("private" in CheckForNonStandardConstructs.ClassAccessSpecifiers[classinfo.name] or \
                                          "protected" in CheckForNonStandardConstructs.ClassAccessSpecifiers[classinfo.name]):
-        error(filename, linenum, 'readability/access_specifiers', 5, 
+        error(filename, linenum, 'readability/access_specifiers', 5,
               'Access specifier \"public:\" appears after one (or both) of \"private:\" and/or \"protected:\", not before')
       if match.group(1) == "protected" and "private" in CheckForNonStandardConstructs.ClassAccessSpecifiers[classinfo.name]:
         error(filename, linenum, 'readability/access_specifiers', 5,
@@ -3230,7 +3366,7 @@ def CheckComment(line, filename, linenum, next_line_start, error):
           error(filename, linenum, 'readability/todo', 2,
                 'Missing date in TODO comment; it should appear on same line as the TODO, preferably in a form like "Apr-14-2020"')
 
-        
+
         if not Search(r"TODO.*[A-Z]\w+ [A-Z]\w+", line[commentpos:]) and \
            not Search(r"TODO.*\s[A-Z][A-Z][A-Z]\s", line[commentpos:]):
           error(filename, linenum, 'readability/todo', 2,
@@ -4382,7 +4518,7 @@ def GetLineWidth(line):
           is_low_surrogate = 0xDC00 <= ord(uc) <= 0xDFFF
           if not is_wide_build and is_low_surrogate:
             width -= 1
-          
+
         width += 1
     return width
   else:
@@ -4650,7 +4786,7 @@ def CheckIncludeLine(filename, clean_lines, linenum, include_state, error):
       include_state.include_list[-1].append((include, linenum))
 
       # We want to ensure that headers appear in the right order:
-      # 1) for foo.cc, foo.hh 
+      # 1) for foo.cc, foo.hh
       # 2) other non-system headers
       # 3) c system files
       # 4) cpp system files
@@ -5351,7 +5487,7 @@ def CheckCStyleCast(filename, clean_lines, linenum, cast_type, pattern, error):
     return False
 
   # At this point, all that should be left is actual casts.
-  
+
   if cast_type != "reinterpret_cast":
     error(filename, linenum, 'readability/casting', 4,
           'Using C-style cast.  Use %s<%s>(...) instead' %

@@ -471,6 +471,55 @@ class DunecpplintTest(DunecpplintTestBase):
                              ''],
                             error_collector)
     self.assertEquals('', error_collector.Results())
+    # NOLINTBEGIN / NOLINTEND suppresses errors for the enclosed block.
+    error_collector = ErrorCollector(self.assert_)
+    dunecpplint.ProcessFileData('test.cc', 'cc',
+                            ['// Copyright 2014 Your Company.',
+                             '// NOLINTBEGIN(runtime/int)',
+                             'long a = 65;',
+                             '// NOLINTEND(runtime/int)',
+                             'long b = 65;',
+                             ''],
+                            error_collector)
+    self.assertEquals('Line 5: Use int16/int64/etc, rather than the C type long'
+                      '  [runtime/int] [4]\n',
+                      error_collector.Results())
+    # NOLINTEND category must match NOLINTBEGIN category.
+    error_collector = ErrorCollector(self.assert_)
+    dunecpplint.ProcessFileData('test.cc', 'cc',
+                            ['// Copyright 2014 Your Company.',
+                             '// NOLINTBEGIN(runtime/int)',
+                             'long a = 65;',
+                             '// NOLINTEND(readability/casting)',
+                             'long b = 65;',
+                             ''],
+                            error_collector)
+    self.assertEquals(['Line 4: NOLINTEND category does not match NOLINTBEGIN'
+                       '  [readability/nolint] [5]',
+                       'Line 5: Use int16/int64/etc, rather than the C type long'
+                       '  [runtime/int] [4]'],
+                      error_collector.Results())
+    # NOLINTEND without open block is malformed.
+    error_collector = ErrorCollector(self.assert_)
+    dunecpplint.ProcessFileData('test.cc', 'cc',
+                            ['// Copyright 2014 Your Company.',
+                             '// NOLINTEND',
+                             ''],
+                            error_collector)
+    self.assertEquals('Line 2: Not in a NOLINT block  [readability/nolint] [5]\n',
+                      error_collector.Results())
+    # Nested NOLINTBEGIN directives are malformed.
+    error_collector = ErrorCollector(self.assert_)
+    dunecpplint.ProcessFileData('test.cc', 'cc',
+                            ['// Copyright 2014 Your Company.',
+                             '// NOLINTBEGIN(runtime/int)',
+                             '// NOLINTBEGIN(readability/casting)',
+                             '// NOLINTEND(runtime/int, readability/casting)',
+                             ''],
+                            error_collector)
+    self.assertEquals('Line 3: NOLINT block already defined on line 2'
+                      '  [readability/nolint] [5]\n',
+                      error_collector.Results())
     # LINT_C_FILE silences cast warnings for entire file.
     error_collector = ErrorCollector(self.assert_)
     dunecpplint.ProcessFileData('test.h', 'h',
