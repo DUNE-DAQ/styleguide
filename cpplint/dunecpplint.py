@@ -731,7 +731,7 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
           if category and category not in parsed_categories:
             parsed_categories.append(category)
 
-      if parsed_categories != _error_suppressions.GetOpenBlockCategories():
+      if sorted(parsed_categories) != sorted(_error_suppressions.GetOpenBlockCategories()):
         error(filename, linenum, 'readability/nolint', 5,
               'NOLINTEND category does not match NOLINTBEGIN')
 
