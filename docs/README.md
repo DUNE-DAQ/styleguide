@@ -1253,6 +1253,6 @@ provides command line tools to automatically lint code for compliance
 with these coding standards. However, it should be pointed out that not all standards can be automatically lintable (e.g., the
 prohibition against functions which do many unrelated things). It
 should also be pointed out that in order to suppress linter complaints
-the comment `// NOLINT(<name of complaint>)` at the end of a line can be used - e.g., `uint16_t adc_value {0}; // NOLINT(build/unsigned)`. In files where violations will unavoidably be in multiple locations, prefacing the relevant code with `// NOLINTBEGIN(<name of complaint>)` and `// NOLINTEND(<name of complaint>)`. Needless to say, `NOLINT` shouldn't be abused, and should only be used in places where violations of our coding standards are well-motivated. 
+the comment `// NOLINT(<name of complaint>)` at the end of a line can be used - e.g., `uint16_t adc_value {0}; // NOLINT(build/unsigned)`. In files where violations will unavoidably be in multiple locations over many lines, prefacing the relevant code with `// NOLINTBEGIN(<name of complaint>)` and bookending it with `// NOLINTEND(<name of complaint>)` will cause the linter to ignore the violation in question for that particule code block. Needless to say, `NOLINT` shouldn't be abused, and should only be used in places where violations of our coding standards are well-motivated!
 
 -----
