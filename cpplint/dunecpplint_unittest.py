@@ -477,12 +477,27 @@ class DunecpplintTest(DunecpplintTestBase):
                             ['// Copyright 2014 Your Company.',
                              '// NOLINTBEGIN(runtime/int)',
                              'long a = 65;',
-                             '// NOLINTEND',
+                             '// NOLINTEND(runtime/int)',
                              'long b = 65;',
                              ''],
                             error_collector)
     self.assertEquals('Line 5: Use int16/int64/etc, rather than the C type long'
                       '  [runtime/int] [4]\n',
+                      error_collector.Results())
+    # NOLINTEND category must match NOLINTBEGIN category.
+    error_collector = ErrorCollector(self.assert_)
+    dunecpplint.ProcessFileData('test.cc', 'cc',
+                            ['// Copyright 2014 Your Company.',
+                             '// NOLINTBEGIN(runtime/int)',
+                             'long a = 65;',
+                             '// NOLINTEND(readability/casting)',
+                             'long b = 65;',
+                             ''],
+                            error_collector)
+    self.assertEquals(['Line 4: NOLINTEND category does not match NOLINTBEGIN'
+                       '  [readability/nolint] [5]',
+                       'Line 5: Use int16/int64/etc, rather than the C type long'
+                       '  [runtime/int] [4]'],
                       error_collector.Results())
     # NOLINTEND without open block is malformed.
     error_collector = ErrorCollector(self.assert_)
@@ -499,7 +514,7 @@ class DunecpplintTest(DunecpplintTestBase):
                             ['// Copyright 2014 Your Company.',
                              '// NOLINTBEGIN(runtime/int)',
                              '// NOLINTBEGIN(readability/casting)',
-                             '// NOLINTEND',
+                             '// NOLINTEND(runtime/int, readability/casting)',
                              ''],
                             error_collector)
     self.assertEquals('Line 3: NOLINT block already defined on line 2'

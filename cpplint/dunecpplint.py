@@ -611,6 +611,7 @@ class ErrorSuppressions(object):
   def __init__(self):
     self._suppressions = {}
     self._open_block_suppression = None
+    self._open_block_categories = None
 
   def _AddSuppression(self, category, line_range):
     suppressed = self._suppressions.setdefault(category, [])
@@ -633,12 +634,21 @@ class ErrorSuppressions(object):
   def StartBlockSuppression(self, category, linenum):
     if self._open_block_suppression is None:
       self._open_block_suppression = self.LineRange(linenum, _SUPPRESSION_MAX_LINENUM)
+      self._open_block_categories = []
+    if category not in self._open_block_categories:
+      self._open_block_categories.append(category)
     self._AddSuppression(category, self._open_block_suppression)
 
   def EndBlockSuppression(self, linenum):
     if self._open_block_suppression:
       self._open_block_suppression.end = linenum
       self._open_block_suppression = None
+      self._open_block_categories = None
+
+  def GetOpenBlockCategories(self):
+    if self._open_block_categories is None:
+      return []
+    return list(self._open_block_categories)
 
   def IsSuppressed(self, category, linenum):
     for suppressed in (self._suppressions.get(category, []),
@@ -653,6 +663,7 @@ class ErrorSuppressions(object):
   def Clear(self):
     self._suppressions.clear()
     self._open_block_suppression = None
+    self._open_block_categories = None
 
 
 # {str, set(int)}: a map from error categories to sets of line ranges
@@ -707,37 +718,26 @@ def ParseNolintSuppressions(filename, raw_line, linenum, error):
     categories = matched.group(2)
 
     if no_lint_type == 'END':
-      if categories in (None, '(*)'):
-        if not _error_suppressions.HasOpenBlock():
-          error(filename, linenum, 'readability/nolint', 5,
-                'Not in a NOLINT block')
-        else:
-          _error_suppressions.EndBlockSuppression(linenum)
+      if not _error_suppressions.HasOpenBlock():
+        error(filename, linenum, 'readability/nolint', 5,
+              'Not in a NOLINT block')
         return
 
-      if categories and categories.startswith('(') and categories.endswith(')'):
-        parsed_categories = []
+      parsed_categories = []
+      if categories in (None, '(*)'):
+        parsed_categories = [None]
+      elif categories and categories.startswith('(') and categories.endswith(')'):
         for category in [c.strip() for c in categories[1:-1].split(',')]:
           if category and category not in parsed_categories:
             parsed_categories.append(category)
 
-        all_external = parsed_categories and all(
-            any(category.startswith(prefix)
-                for prefix in _OTHER_NOLINT_CATEGORY_PREFIXES)
-            for category in parsed_categories)
+      if parsed_categories != _error_suppressions.GetOpenBlockCategories():
+        error(filename, linenum, 'readability/nolint', 5,
+              'NOLINTEND category does not match NOLINTBEGIN')
 
-        if not _error_suppressions.HasOpenBlock():
-          if not all_external:
-            error(filename, linenum, 'readability/nolint', 5,
-                  'Not in a NOLINT block')
-        else:
-          error(filename, linenum, 'readability/nolint', 5,
-                'NOLINT categories not supported in block END: %s' %
-                ', '.join(parsed_categories))
-          # Even after reporting malformed END(category), terminate the open
-          # block to avoid leaking suppression to subsequent lines.
-          _error_suppressions.EndBlockSuppression(linenum)
-        return
+      # Always close the block at NOLINTEND so suppression does not leak.
+      _error_suppressions.EndBlockSuppression(linenum)
+      return
 
     if no_lint_type == 'NEXTLINE':
       def ProcessCategory(category):
