@@ -2,7 +2,15 @@
 """DUNE-specific overrides layered on top of vendored upstream cpplint."""
 
 import re
-import cpplint as _upstream_cpplint
+import importlib.util
+from pathlib import Path
+
+_CPPLINT_PATH = Path(__file__).resolve().with_name('cpplint.py')
+_CPPLINT_SPEC = importlib.util.spec_from_file_location('dune_vendored_cpplint', _CPPLINT_PATH)
+if _CPPLINT_SPEC is None or _CPPLINT_SPEC.loader is None:
+  raise ImportError('Unable to load vendored cpplint.py')
+_upstream_cpplint = importlib.util.module_from_spec(_CPPLINT_SPEC)
+_CPPLINT_SPEC.loader.exec_module(_upstream_cpplint)
 
 # Re-export upstream symbols so existing dunecpplint imports keep working.
 for _name in dir(_upstream_cpplint):
