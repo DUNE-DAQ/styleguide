@@ -15,7 +15,7 @@
         * [2.7 Enumerator Names](#27-enumerator-names)
         * [2.8 Macro Names](#28-macro-names)
     * [3.  Header Files](#3-header-files)
-        * [3.1  Self-contained Headers](#31-self-contained-headers)
+        * [3.1  Self-Contained Headers](#31-self-contained-headers)
         * [3.2  The #define Guard](#32-the-define-guard)
         * [3.3  Inline Functions](#33-inline-functions)
         * [3.4  Names and Order of Includes](#34-names-and-order-of-includes)
