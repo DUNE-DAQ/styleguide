@@ -107,7 +107,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 for file in $files ; do
 
-     if [[ $file =~ .*/Structs.hpp || $file =~ .*/Nljs.hpp ]]; then
+     if [[ $file =~ .*/Structs.hpp || $file =~ .*/Nljs.hpp || $file =~ .*archive/.* ]]; then
  	continue
      fi
 
