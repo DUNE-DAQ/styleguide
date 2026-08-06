@@ -222,7 +222,6 @@ hicpp-exception-baseclass,\
 hicpp-multiway-paths-covered,\
 misc-unconventional-assign-operator,\
 modernize-make-shared,\
-modernize-make-unique,\
 modernize-use-emplace,\
 #modernize-use-nodiscard,\
 modernize-use-uncaught-exceptions,\
