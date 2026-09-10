@@ -2,6 +2,13 @@
 #------------------------------------------------------------------------------
 HERE=$(cd $(dirname $(readlink -f ${BASH_SOURCE})) && pwd)
 
+source ${DBT_ROOT}/scripts/dbt-setup-tools.sh
+if [[ "$?" != 0 ]]; then
+    echo "The source of ${DBT_ROOT}/scripts/dbt-setup-tools.sh failed. Exiting..." >&2
+    exit 1
+fi
+
+
 function spack_get_clang() {
 
     clang_spack_dir="/cvmfs/dunedaq.opensciencegrid.org/spack/externals"
@@ -20,7 +27,7 @@ function spack_get_clang() {
 
     theclang=$( which clang 2>/dev/null )
     if ! [[ -n $( $theclang ) && "$theclang" =~ "^${llvmdir}/bin/clang" ]]; then
-	cmd="spack load llvm"
+	cmd="spack load llvm $(get_usable_arch_spec)"
 	$cmd
 	if [[ "$?" != "0" ]]; then
 	    echo "Unable to successfully call \"$cmd\"; exiting..." >&2
@@ -29,7 +36,7 @@ function spack_get_clang() {
 
 	# Ensure clang-tidy accesses the gcc-runtime corresponding to the gcc it was built with
 	gcc_version=$( gcc --version | head -1 | sed -r 's/.*\s+([0-9]+\.[0-9]+\.[0-9]+).*/\1/' )
-	cmd="spack load gcc-runtime@$gcc_version"
+	cmd="spack load gcc-runtime@$gcc_version $(get_usable_arch_spec)"
 	$cmd
 	if [[ "$?" != "0" ]]; then
             echo "Unable to successfully call \"$cmd\"; exiting..." >&2
