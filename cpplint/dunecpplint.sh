@@ -81,28 +81,37 @@ fi
 
 for header_file in $header_files; do
 
-    echo
-    echo "=========================Checking $header_file========================="
-    
-    $( dirname $0 )/dunecpplint.py --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${header_filters}${dev_filters} $header_file 
+    # Run lint and capture output
+    lint_output=$($( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${header_filters}${dev_filters} $header_file 2>&1)
+
+    # Only print if there were violations
+    if echo "$lint_output" | grep -q "Total errors found:"; then
+        echo "$lint_output"
+    fi
 
 done
 
 for source_file in $source_files; do
 
-    echo
-    echo "=========================Checking $source_file========================="
-    
-    $( dirname $0 )/dunecpplint.py --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${source_filters}${dev_filters} $source_file 
+    # Run lint and capture output
+    lint_output=$($( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${source_filters}${dev_filters} $source_file 2>&1)
+
+    # Only print if there were violations
+    if echo "$lint_output" | grep -q "Total errors found:"; then
+        echo "$lint_output"
+    fi
 
 done
 
 for hxx_file in $hxx_files; do
 
-    echo
-    echo "=========================Checking $hxx_file========================="
-    
-    $( dirname $0 )/dunecpplint.py --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${hxx_filters}${dev_filters} $hxx_file 
+    # Run lint and capture output
+    lint_output=$($( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${hxx_filters}${dev_filters} $hxx_file 2>&1)
+
+    # Only print if there were violations
+    if echo "$lint_output" | grep -q "Total errors found:"; then
+        echo "$lint_output"
+    fi
 
 done
 

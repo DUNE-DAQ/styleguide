@@ -111,15 +111,9 @@ for file in $files ; do
  	continue
      fi
 
-     echo
-     echo "Applying dunecpplint.sh to ${file}"
      $DIR/dunecpplint.sh $file
 
      if [[ "$file" =~ .*cxx$ || "$file" =~ .*cpp$ ]]; then
-	 echo
-
-	 echo "Applying duneclang-tidy.sh to ${file}"
-	 echo $DIR/duneclang-tidy.sh $compile_commands_dir $file
 	 $DIR/duneclang-tidy.sh $compile_commands_dir $file
      fi
 
