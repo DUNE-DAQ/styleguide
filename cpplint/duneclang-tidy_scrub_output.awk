@@ -4,6 +4,7 @@ BEGIN {
     
     in_ers_lint=0
 
+    work_area_dir=ENVIRON["DBT_AREA_ROOT"]
 }
 
 
@@ -119,6 +120,11 @@ BEGIN {
 	  next
       }
       header_complaints[header_line_and_loc] = 1
+    }
+
+    pos = index($0, work_area_dir)
+    if (pos > 0) {
+	$0 = substr($0, pos + length(work_area_dir) + 1)  # + 1 to shave off starting "/"
     }
 
     print

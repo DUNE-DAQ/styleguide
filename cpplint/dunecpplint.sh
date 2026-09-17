@@ -81,29 +81,18 @@ fi
 
 for header_file in $header_files; do
 
-    echo
-    echo "=========================Checking $header_file========================="
-    
-    $( dirname $0 )/dunecpplint.py --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${header_filters}${dev_filters} $header_file 
+    $( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${header_filters}${dev_filters} $header_file
 
 done
 
 for source_file in $source_files; do
 
-    echo
-    echo "=========================Checking $source_file========================="
-    
-    $( dirname $0 )/dunecpplint.py --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${source_filters}${dev_filters} $source_file 
+    $( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${source_filters}${dev_filters} $source_file
 
 done
 
 for hxx_file in $hxx_files; do
 
-    echo
-    echo "=========================Checking $hxx_file========================="
-    
-    $( dirname $0 )/dunecpplint.py --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${hxx_filters}${dev_filters} $hxx_file 
+    $( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${hxx_filters}${dev_filters} $hxx_file
 
 done
-
-
