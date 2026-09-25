@@ -1,7 +1,7 @@
 BEGIN {
-    
+
     RS="^"
-    
+
     in_ers_lint=0
     in_boost_lint=0
 
@@ -18,7 +18,7 @@ BEGIN {
 
     # Get rid of complaints about moo-generated code
     if ($0 ~/\/codegen\//) {
-       next	
+       next
     }
 
     # Get rid of complaints about TLOG expansions
@@ -39,6 +39,11 @@ BEGIN {
     }
     in_boost_lint = 0
 
+    # Also ignore bad things that happen in exception tests
+    if ($0 ~ /BOOST_.*_EXCEPTION/) {
+        next
+    }
+
     # Get rid of spurious (and lengthy) complaint about template
     # parameters in iomanager's FollyQueue.hpp as well as other
     # spurious folly complaints (FollyMPMCQueue not existing, e.g.)
@@ -46,7 +51,7 @@ BEGIN {
     if ($0 ~ /Folly.*Queue/) {
 	next
     }
-    
+
     # Get rid of complaints about ERS expansions
     if ($0 ~ /ERS_/) {
 	#printf("\nMatched ERS_, setting in_ers_lint to 1")
@@ -91,7 +96,7 @@ BEGIN {
 	next
     }
 
-    # JCF, May-27-2022: there's a phenomenon where two warnings will appear in the same record, and the first is actually 
+    # JCF, May-27-2022: there's a phenomenon where two warnings will appear in the same record, and the first is actually
     # the last (unwanted) performance-unnecessary-value-param warning at the end of an ERS line
 
     if ($0 ~ /\[performance-unnecessary-value-param\].*\[[[:alnum:]-]+\]/) {
@@ -120,7 +125,7 @@ BEGIN {
     }
 
     # Don't have header linting repeated
-    match($0, /[[:alnum:]]+.h[px][px]:[0-9]+:[0-9]+/) 
+    match($0, /[[:alnum:]]+.h[px][px]:[0-9]+:[0-9]+/)
 
     repeat = 0
     if (RLENGTH != -1) {
