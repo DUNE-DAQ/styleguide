@@ -3,6 +3,7 @@ BEGIN {
     RS="^"
     
     in_ers_lint=0
+    in_boost_lint=0
 
     work_area_dir=ENVIRON["DBT_AREA_ROOT"]
 }
@@ -26,9 +27,17 @@ BEGIN {
     }
 
     # Get rid of complainst about BOOST expansions
-    if ($0 ~ /BOOST_/) {
-	next
+    if ($0 ~ /Calling.*test_method/) {
+	    in_boost_lint=1
+        next
     }
+
+    if (in_boost_lint == 1) {
+        if ($0 ~ /note:/) {
+            next
+        }
+    }
+    in_boost_lint = 0
 
     # Get rid of spurious (and lengthy) complaint about template
     # parameters in iomanager's FollyQueue.hpp as well as other
