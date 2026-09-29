@@ -4,14 +4,20 @@ BEGIN {
 
     in_ers_lint=0
     in_boost_lint=0
+    in_serialization_lint=0
 
     work_area_dir=ENVIRON["DBT_AREA_ROOT"]
 }
 
 
 {
+    if($0 ~ /\/cvmfs\/dunedaq.*opensciencegrid.org.*msgpack/) {
+        in_serialization_lint = 1
+        next
+    }
+
     # Get rid of complaints about external headers
-    if ($0 ~ /^[[:space:]~]*\/cvmfs\/dunedaq.*opensciencegrid.org.*/) {
+    if ($0 ~ /\n[[:space:]~]*\/cvmfs\/dunedaq.*opensciencegrid.org.*/) {
        next
     }
 
@@ -32,12 +38,13 @@ BEGIN {
         next
     }
 
-    if (in_boost_lint == 1) {
+    if (in_boost_lint == 1 || in_serialization_lint == 1) {
         if ($0 ~ /note:/) {
             next
         }
     }
     in_boost_lint = 0
+    in_serialization_lint = 0
 
     # Also ignore bad things that happen in exception tests
     if ($0 ~ /BOOST_.*_EXCEPTION/) {
