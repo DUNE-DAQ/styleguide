@@ -1,23 +1,31 @@
 BEGIN {
-    
+
     RS="^"
-    
+
     in_ers_lint=0
+    in_boost_lint=0
+    in_serialization_lint=0
 
     work_area_dir=ENVIRON["DBT_AREA_ROOT"]
 }
 
 
 {
+    # Ignore complaints about MsgPack deserializer memory allocation
+    if($0 ~ /\/cvmfs\/dunedaq.*opensciencegrid.org.*msgpack/) {
+        in_serialization_lint = 1
+        next
+    }
+
     # Get rid of complaints about external headers
-    if ($0 ~ /^[[:space:]~]*\/cvmfs\/dunedaq.*opensciencegrid.org.*/) {
+    if ($0 ~ /\n[[:space:]~]*\/cvmfs\/dunedaq.*opensciencegrid.org.*/) {
        next
     }
 
 
     # Get rid of complaints about moo-generated code
     if ($0 ~/\/codegen\//) {
-       next	
+       next
     }
 
     # Get rid of complaints about TLOG expansions
@@ -26,8 +34,22 @@ BEGIN {
     }
 
     # Get rid of complainst about BOOST expansions
-    if ($0 ~ /BOOST_/) {
-	next
+    if ($0 ~ /Calling.*test_method/) {
+	    in_boost_lint=1
+        next
+    }
+
+    if (in_boost_lint == 1 || in_serialization_lint == 1) {
+        if ($0 ~ /note:/) {
+            next
+        }
+    }
+    in_boost_lint = 0
+    in_serialization_lint = 0
+
+    # Also ignore bad things that happen in exception tests
+    if ($0 ~ /BOOST_.*_EXCEPTION/) {
+        next
     }
 
     # Get rid of spurious (and lengthy) complaint about template
@@ -37,7 +59,7 @@ BEGIN {
     if ($0 ~ /Folly.*Queue/) {
 	next
     }
-    
+
     # Get rid of complaints about ERS expansions
     if ($0 ~ /ERS_/) {
 	#printf("\nMatched ERS_, setting in_ers_lint to 1")
@@ -82,7 +104,7 @@ BEGIN {
 	next
     }
 
-    # JCF, May-27-2022: there's a phenomenon where two warnings will appear in the same record, and the first is actually 
+    # JCF, May-27-2022: there's a phenomenon where two warnings will appear in the same record, and the first is actually
     # the last (unwanted) performance-unnecessary-value-param warning at the end of an ERS line
 
     if ($0 ~ /\[performance-unnecessary-value-param\].*\[[[:alnum:]-]+\]/) {
@@ -111,7 +133,7 @@ BEGIN {
     }
 
     # Don't have header linting repeated
-    match($0, /[[:alnum:]]+.h[px][px]:[0-9]+:[0-9]+/) 
+    match($0, /[[:alnum:]]+.h[px][px]:[0-9]+:[0-9]+/)
 
     repeat = 0
     if (RLENGTH != -1) {
