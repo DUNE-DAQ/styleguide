@@ -11,6 +11,7 @@ BEGIN {
 
 
 {
+    # Ignore complaints about MsgPack deserializer memory allocation
     if($0 ~ /\/cvmfs\/dunedaq.*opensciencegrid.org.*msgpack/) {
         in_serialization_lint = 1
         next
