@@ -1,6 +1,6 @@
-This directory contains automated checkers to make sure a C++ file follows artdaq's C++
+This directory contains automated checkers to make sure a C++ file follows DUNE's C++
 style guide
-(https://github.com/art-daq/styleguide/blob/docs/README.md).
+(https://github.com/DUNE-DAQ/styleguide/blob/dune-daq-cppguide/dune-daq-cppguide.md). 
 
 ======================================================================
 dunecpplint.py :

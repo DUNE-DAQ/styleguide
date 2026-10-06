@@ -2,11 +2,14 @@
 
 HERE=$(cd $(dirname $(readlink -f ${BASH_SOURCE})) && pwd)
 
-if [[ "$#" < "2" ]]; then
+source ${HERE}/styleguide-setup-tools.sh
+
+
+if [[ "$#" != "2" ]]; then
 
 cat<<EOF >&2
 
-    Usage: $(basename $0) <directory containing the compile_commands.json file for your build> <file or directory to examine> <exclude regex>
+    Usage: $(basename $0) <directory containing the compile_commands.json file for your build> <file or directory to examine> 
 
 Given a file, it will apply two linters to that file:
 
@@ -55,7 +58,7 @@ the directory which contains compile_commands.json. Exiting...
 EOF
 
     exit 4
-
+    
 elif [[ ! -f $compile_commands_dir/compile_commands.json ]]; then
 
 cat<<EOF >&2
@@ -63,7 +66,7 @@ cat<<EOF >&2
 Expected file "compile_commands.json" not found in provided directory,
 $compile_commands_dir; exiting...
 
-JCF, May-26-2022: in order for the nightly build to work, for the time
+JCF, May-26-2022: in order for the nightly build to work, for the time 
 being this will result in an exit value of 0 rather than 5 (i.e. "success")
 
 EOF
@@ -73,18 +76,17 @@ fi
 
 
 filename=$2
-exclude_regex=$3
 
 files=""
 
 if [[ -d $filename ]]; then
-    files=$( find $filename -name "*.cc" )" "$( find $filename -name "*.cpp" )" "$( find $filename -name "*.hh" )
+    files=$( find $filename -name "*.cxx" )" "$( find $filename -name "*.cpp" )" "$( find $filename -name "*.hpp" ) 
 elif [[ -f $filename ]]; then
 
-    if [[ "$filename" =~ ^.*cc$ || "$filename" =~ ^.*cpp$ || "$filename" =~ ^.*hh$ ]]; then
+    if [[ "$filename" =~ ^.*cxx$ || "$filename" =~ ^.*cpp$ || "$filename" =~ ^.*hpp$ ]]; then
 	files=$filename
     else
-	echo "Filename $(basename $filename) has unknown extension; exiting..." >&2
+	echo "Filename provided has unknown extension; exiting..." >&2
 	exit 1
     fi
 
@@ -93,22 +95,29 @@ else
     exit 2
 fi
 
+
+if [[ -n $SPACK_ROOT ]]; then
+    spack_get_clang
+else
+    ups_get_clang
+fi
+
 files=$( echo $files | tr " " "\n" | sort | tr "\n" " " )
 DIR="$(dirname "$(readlink -f "$0")")"
 
 for file in $files ; do
 
-     if [[ $file =~ ${exclude_regex} ]]; then
+     if [[ $file =~ .*/Structs.hpp || $file =~ .*/Nljs.hpp || $file =~ .*archive/.* ]]; then
  	continue
      fi
 
      $DIR/dunecpplint.sh $file
 
-     if [[ "$file" =~ .*cc$ || "$file" =~ .*cpp$ ]]; then
+     if [[ "$file" =~ .*cxx$ || "$file" =~ .*cpp$ ]]; then
 	 $DIR/duneclang-tidy.sh $compile_commands_dir $file
      fi
 
-done
+done 
 
 
 exit 0

@@ -3,7 +3,7 @@
 # JCF, Apr-26-2021
 # dunecpplint.py is a modified copy of cpplint.py, designed for the
 # DUNE C++ style guide
-# (https://github.com/art-daq/styleguide/blob/docs/README.md). Read
+# (https://dune-daq-sw.readthedocs.io/en/latest/packages/styleguide/). Read
 # below for Google's original copyright notice.
 
 #
@@ -75,7 +75,7 @@ Usage: dunecpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
   You probably don't want to call this script directly but rather dunecpplint.sh
 
   The style guidelines this tries to follow are those in
-    https://github.com/art-daq/styleguide/blob/docs/README.md
+    https://dune-daq-sw.readthedocs.io/en/latest/packages/styleguide/
 
 JCF, Apr-3-2020: I can't vouch (yet) for anything below this line:
 ======================================================================
@@ -1907,6 +1907,39 @@ def ReverseCloseExpression(clean_lines, linenum, pos):
   # Did not find start of expression before beginning of file, give up
   return (line, 0, -1)
 
+
+def CheckForCopyright(filename, lines, error):
+  """Logs an error if no Copyright message appears at the top of the file."""
+
+  # We'll say it should occur by line 30. Don't forget there's a
+  # dummy line at the front.
+
+  maxline=30
+  matching_lines=0
+
+  # Try looking for something like this:
+  #
+  # * This is part of the DUNE DAQ Application Framework, copyright 2020.
+  # * Licensing/copyright details are in the COPYING file that you should have received with this code.
+  #
+  # ...while allowing users to choose where to perform line breaks.
+
+  line1="* This is part of the DUNE DAQ"
+  line2="this code."
+  for line in xrange(1, min(len(lines), maxline)):
+    if line1 in lines[line]:
+      matching_lines += 1
+    elif line2 in lines[line]:
+      matching_lines +=1
+
+    if matching_lines == 2:
+      break
+
+  if matching_lines != 2:
+    error(filename, 0, 'legal/copyright', 5,
+          'The standard copyright message wasn\'t found.')
+
+
 def GetIndentLevel(line):
   """Return the number of leading spaces in line.
 
@@ -2930,7 +2963,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
   for output_token in ["printf", "cout", "cerr"]:
     if Search(r'[\s:]%s[ .<(]' % (output_token), line):
       error(filename, linenum, 'runtime/output_format', 3,
-            '\"%s\" should not be used for output in artdaq software.' % (output_token))
+            '\"%s\" should not be used for output in DUNE DAQ software.' % (output_token))
 
   # Remove escaped backslashes before looking for undefined escapes.
   line = line.replace('\\\\', '')
@@ -5001,7 +5034,7 @@ def CheckLanguage(filename, clean_lines, linenum, file_extension,
       and line[-1] != '\\'):
     error(filename, linenum, 'build/namespaces', 4,
           'Do not use unnamed namespaces in header files.  See '
-          'the Unnamed Namespaces and Static Variables section of https://github.com/art-daq/styleguide/blob/docs/README.md'
+          'the Unnamed Namespaces and Static Variables section of https://dune-daq-sw.readthedocs.io/en/latest/packages/styleguide/'
           ' for more information.')
 
 
@@ -6068,6 +6101,7 @@ def ProcessFileData(filename, file_extension, lines, error,
 
   ResetNolintSuppressions()
 
+  CheckForCopyright(filename, lines, error)
   ProcessGlobalSuppresions(lines)
   CheckForCStyleComments(filename, lines, error)
   RemoveMultiLineComments(filename, lines, error)

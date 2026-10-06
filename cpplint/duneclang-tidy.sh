@@ -2,11 +2,14 @@
 
 HERE=$(cd $(dirname $(readlink -f ${BASH_SOURCE})) && pwd)
 
+source ${HERE}/styleguide-setup-tools.sh
+
+
 if [[ "$#" != "2" ]]; then
 
 cat<<EOF >&2
 
-    Usage: $(basename $0) <directory containing the compile_commands.json file for your build> <file or directory to examine>
+    Usage: $(basename $0) <directory containing the compile_commands.json file for your build> <file or directory to examine> 
 
 Given a file, it will apply a linter (clang-tidy) to that file
 
@@ -52,7 +55,7 @@ the directory which contains compile_commands.json. Exiting...
 EOF
 
     exit 4
-
+    
 elif [[ ! -f $compile_commands_dir/compile_commands.json ]]; then
 
 cat<<EOF >&2
@@ -73,13 +76,13 @@ if [[ -d $filename ]]; then
     source_files=$( find $filename -name "*.cxx" )" "$( find $filename -name "*.cpp" )
 elif [[ -f $filename ]]; then
 
-    if [[ "$filename" =~ ^.*cc$ || "$filename" =~ ^.*cpp$ ]]; then
+    if [[ "$filename" =~ ^.*cxx$ || "$filename" =~ ^.*cpp$ ]]; then
 	source_files=$filename
-    elif [[ "$filename" =~ ^.*hh$ ]]; then
+    elif [[ "$filename" =~ ^.*hpp$ ]]; then
 	echo $(basename $0)" can only accept source files, not header files; exiting..." >&2
 	exit 1
     else
-	echo "Filename $(basename $filename) has unknown extension; exiting..." >&2
+	echo "Filename provided has unknown extension; exiting..." >&2
 	exit 1
     fi
 
@@ -92,8 +95,12 @@ which clang-tidy > /dev/null 2>&1
 retval=$?
 
 if [[ "$retval" != "0" ]]; then
-    echo "This script expects clang-tidy to be available in your PATH; exiting..." >&2
-    exit 1
+    
+    if [[ -n $SPACK_ROOT ]]; then
+	spack_get_clang
+    else
+	ups_get_clang
+    fi
 fi
 
 # Some of the warnings/errors left out:
@@ -231,7 +238,7 @@ tmpdir=$( mktemp -d )
 if [[ ! -d $tmpdir ]]; then
     cat<<EOF >&2
 
-There was a problem creating a temporary directory in which to modify a copy of
+There was a problem creating a temporary directory in which to modify a copy of 
 $compile_commands_dir/compile_commands.json; exiting...
 
 EOF
@@ -247,7 +254,7 @@ if [[ -e $tmpdir/compile_commands.json ]]; then
 
     # If you see an include directory of the form
     # /../v3_2_1/../include, have clang-tidy ignore any headers in
-    # those directories, the logic being that they probably aren't
+    # those directories, the logic being that they probably aren't 
     # headers the developer would modify (e.g., ups products)
 
     sed -r -i 's!\-I(\s*\S+/v[0-9]\S+/include)(\s+)!\-isystem\1\2!g' $tmpdir/compile_commands.json
@@ -255,7 +262,7 @@ if [[ -e $tmpdir/compile_commands.json ]]; then
 else
     cat<<EOF >&2
 
-Was able to create temporary directory $tmpdir but couldn't copy
+Was able to create temporary directory $tmpdir but couldn't copy 
 $compile_commands_dir/compile_commands.json into it; exiting...
 
 EOF
@@ -269,7 +276,7 @@ for source_file in $source_files; do
 
     clang-tidy -extra-arg=-ferror-limit=0 -p=$tmpdir -checks=${musts},${maybes} -config="{CheckOptions: [{key: cppcoreguidelines-narrowing-conversions.IgnoreConversionFromTypes, value: unsigned;size_t;ptrdiff_t;size_type;difference_type}]}" -header-filter=.* $source_file |& awk -f $(dirname $0)/duneclang-tidy_scrub_output.awk
 
-done
+done 
 
 #echo "Deleting $tmpdir/compile_commands.json"
 rm -f $tmpdir/compile_commands.json
