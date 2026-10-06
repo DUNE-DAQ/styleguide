@@ -5,7 +5,7 @@ if [[ "$#" != "1" ]]; then
     echo
     cat <<EOF >&2
 
-The DUNE C++ style guide this script tries to look for violations of can be found in 
+The DUNE C++ style guide this script tries to look for violations of can be found in
 https://github.com/DUNE-DAQ/styleguide/blob/dune-daq-cppguide/dune-daq-cppguide.md
 
 Given a file, it will apply a linter (dunecpplint.py) to that file
@@ -15,7 +15,7 @@ Given a directory, it will apply dunecpplint.py to all the source
 subdirectories.
 
 EOF
-    
+
     exit 1
 fi
 
@@ -45,32 +45,29 @@ filename=$1
 
 # -whitespace: worry about this with our formatting tools
 
+# -build/unsigned Artdaq assumes that you know what you are doing with unsigned variables
 
-header_filters="-build/c++11,-build/c++14,-readability/check,-readability/constructors,-runtime/indentation_namespace,-runtime/references,-runtime/string,-runtime/vlog,-whitespace,-build/explicit_make_pair"
-source_filters="-build/c++11,-build/c++14,-build/namespaces,-readability/check,-readability/constructors,-runtime/indentation_namespace,-runtime/references,-runtime/string,-runtime/vlog,-whitespace,-build/explicit_make_pair"
-hxx_filters=${source_filters}",-build/include_what_you_use,-legal/copyright"
+
+header_filters="-build/c++11,-build/c++14,-readability/check,-readability/constructors,-runtime/indentation_namespace,-runtime/references,-runtime/string,-runtime/vlog,-whitespace,-build/explicit_make_pair,-build/unsigned"
+source_filters="-build/c++11,-build/c++14,-build/namespaces,-readability/check,-readability/constructors,-runtime/indentation_namespace,-runtime/references,-runtime/string,-runtime/vlog,-whitespace,-build/explicit_make_pair,-build/unsigned"
 
 dev_filters=""
 #dev_filters=",-build/include_order,-build/include_what_you_use,-legal/copyright,-build/header_guard,-build/define_used,-readability/namespace,-runtime/output_format"
 
 header_files=""
 source_files=""
-hxx_files=""
 
 if [[ -d $filename ]]; then
-    header_files=$( find $filename -name "*.hpp" )
-    source_files=$( find $filename -name "*.cxx" )" "$( find $filename -name "*.cpp" )
-    hxx_files=$( find $filename -name "*.hxx" )
+    header_files=$( find $filename -name "*.hh" )
+    source_files=$( find $filename -name "*.cc" )" "$( find $filename -name "*.cpp" )
 elif [[ -f $filename ]]; then
 
-    if [[ "$filename" =~ ^.*cxx$ || "$filename" =~ ^.*cpp$ ]]; then
+    if [[ "$filename" =~ ^.*cc$ || "$filename" =~ ^.*cpp$ ]]; then
 	source_files=$filename
-    elif [[ "$filename" =~ ^.*hpp$ ]]; then
+    elif [[ "$filename" =~ ^.*hh$ ]]; then
 	header_files=$filename
-    elif [[ "$filename" =~ ^.*hxx$ ]]; then
-	hxx_files=$filename
     else
-	echo "Filename provided has unknown extension; exiting..." >&2
+	echo "Filename $(basename $filename) has unknown extension; exiting..." >&2
 	exit 1
     fi
 
@@ -81,18 +78,12 @@ fi
 
 for header_file in $header_files; do
 
-    $( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${header_filters}${dev_filters} $header_file
+    $( dirname $0 )/dunecpplint.py --quiet --extensions=hh,cc,cpp --headers=hh --filter=${header_filters}${dev_filters} $header_file
 
 done
 
 for source_file in $source_files; do
 
-    $( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${source_filters}${dev_filters} $source_file
-
-done
-
-for hxx_file in $hxx_files; do
-
-    $( dirname $0 )/dunecpplint.py --quiet --extensions=hpp,cxx,cpp,hxx --headers=hpp --filter=${hxx_filters}${dev_filters} $hxx_file
+    $( dirname $0 )/dunecpplint.py --quiet --extensions=hh,cc,cpp --headers=hh --filter=${source_filters}${dev_filters} $source_file
 
 done
