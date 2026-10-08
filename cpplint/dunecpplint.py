@@ -3055,7 +3055,7 @@ def CheckForNonStandardConstructs(filename, clean_lines, linenum,
   if Search(r'static\s+', line):
     if not classinfo and not function_state.in_a_function and not nesting_state.InClassDeclaration():
       error(filename, linenum, 'build/namespaces', 5,
-            'static storage declaration outside of class or function not allowed (if this isn\'t a header, please contact John Freeman)')
+            'static storage declaration outside of class or function not allowed (if this isn\'t a header, please open an issue at https://github.com/DUNE-DAQ/styleguide)')
 
   # Everything else in this function operates on class declarations.
   # Return early if the top of the nesting stack is not a class, or if
@@ -4985,7 +4985,7 @@ def CheckLanguage(filename, clean_lines, linenum, file_extension,
   if Search(r'\busing namespace\b', line):
     error(filename, linenum, 'build/namespaces', 5,
           'Do not use namespace using-directives.  '
-          'Use using-declarations instead (if this isn\'t a header, please contact John Freeman)')
+          'Use using-declarations instead (if this isn\'t a header, please open an issue at https://github.com/DUNE-DAQ/styleguide)')
 
   # Detect variable-length arrays.
   match = Match(r'\s*(.+::)?(\w+) [a-z]\w*\[(.+)];', line)
