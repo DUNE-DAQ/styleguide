@@ -5,7 +5,7 @@ if [[ "$#" != "1" ]]; then
     echo
     cat <<EOF >&2
 
-The DUNE C++ style guide this script tries to look for violations of can be found in 
+The DUNE C++ style guide this script tries to look for violations of can be found in
 https://github.com/DUNE-DAQ/styleguide/blob/dune-daq-cppguide/dune-daq-cppguide.md
 
 Given a file, it will apply a linter (dunecpplint.py) to that file
@@ -15,7 +15,7 @@ Given a directory, it will apply dunecpplint.py to all the source
 subdirectories.
 
 EOF
-    
+
     exit 1
 fi
 
@@ -70,7 +70,7 @@ elif [[ -f $filename ]]; then
     elif [[ "$filename" =~ ^.*hxx$ ]]; then
 	hxx_files=$filename
     else
-	echo "Filename provided has unknown extension; exiting..." >&2
+	echo "Filename $(basename $filename) has unknown extension; exiting..." >&2
 	exit 1
     fi
 
