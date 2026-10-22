@@ -157,35 +157,17 @@ for file in $files ; do
     total=$((total + 1))
 done
 
-processed=0
-report_progress() {
-    local remaining=$((total - processed))
-    if [[ -t 2 ]]; then
-        printf '\rProcessed %d of %d files; %d remaining' "$processed" "$total" "$remaining" >&2
-    else
-        printf 'Processed %d of %d files; %d remaining\n' "$processed" "$total" "$remaining" >&2
-    fi
-}
-
 i=0
 for file in $files ; do
     check_file $file "$outdir/$i.out" &
     i=$((i + 1))
     while (( $(jobs -rp | wc -l) >= max_jobs )); do
         wait -n || true
-        processed=$((processed + 1))
-        report_progress
     done
 done
 while (( $(jobs -rp | wc -l) > 0 )); do
     wait -n || true
-    processed=$((processed + 1))
-    report_progress
 done
-
-if [[ -t 2 ]]; then
-    printf '\r\033[K' >&2
-fi
 
 i=0
 for file in $files ; do
@@ -202,10 +184,5 @@ done
 for key in "${!passed[@]}"; do
     echo "${passed[$key]} $key"
 done | sort -k2 > "$passed_file" 2>/dev/null
-
-if (( skipped > 0 )); then
-    echo "Skipped $skipped previously passed unchanged or generated file(s); see $passed_file" >&2
-fi
-
 
 exit 0
